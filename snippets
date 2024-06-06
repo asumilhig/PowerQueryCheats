@@ -1,4 +1,4 @@
 Concatenate strings from multiple rows into single row, also applies to grouping
 Select Group by then in new column, select SUM as operation and select the column you want to concatenate, assign name and click ok
-Added column will show as error. in the formula bar, = Table.Group(#"Added Custom", {"SourceTable"}, {{"Count", each Text.Combine([column], ";"), type nullable text}})
+Added column will show as error. in the formula bar, = Table.Group(#"Added Custom", {"SourceTable"}, {{"CustomColumn", each Text.Combine([column], ";"), type nullable text}})
 
