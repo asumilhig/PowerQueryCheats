@@ -2,3 +2,6 @@ Concatenate strings from multiple rows into single row, also applies to grouping
 Select Group by then in new column, select SUM as operation and select the column you want to concatenate, assign name and click ok
 Added column will show as error. in the formula bar, = Table.Group(#"Added Custom", {"GroupColumn"}, {{"CustomColumn", each Text.Combine([column], ";"), type nullable text}})
 
+Count the columns with non blanks
+add new column and add this formula -> List.Count(List.RemoveNulls(Record.ToList(Record.RemoveFields(_, "Vehicle ID"))))
+https://community.fabric.microsoft.com/t5/Power-Query/Need-to-count-columns-in-a-row-that-are-not-null/td-p/3067269
