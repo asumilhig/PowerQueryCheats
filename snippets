@@ -5,3 +5,21 @@ Added column will show as error. in the formula bar, = Table.Group(#"Added Custo
 Count the columns with non blanks
 add new column and add this formula -> List.Count(List.RemoveNulls(Record.ToList(Record.RemoveFields(_, "Vehicle ID"))))
 https://community.fabric.microsoft.com/t5/Power-Query/Need-to-count-columns-in-a-row-that-are-not-null/td-p/3067269
+
+Get the row with max value from the group
+let
+    Source = Excel.CurrentWorkbook(){[Name="DataDump"]}[Content],
+    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"RecordID", type text}, {"Shift Date", type date}, {"Claims Assistant Support", type text}, {"LOB", type text}, {"Task", type text}, {"Claim # / Subject Name / Folder ID", type text}, {"Remarks", type text}, {"Due Date", type number}, {"Task Started", type number}, {"Task Completed", type number}}),
+    #"handling time" = Table.AddColumn(#"Changed Type", "Handling Time", each [Task Completed]-[Task Started], type number),
+    #"Added Custom2" = Table.AddColumn(#"handling time", "Remarks_", each if [Remarks] <> "" and [Remarks] <> null then DateTime.ToText(DateTime.From([Task Completed]),"MM/dd HH:mm tt") & " - " & [Remarks] & "; #(lf)" else ""),
+    #"Grouped Rows" = Table.Group(#"Added Custom2", {"RecordID"}, {{"Handling Time", each List.Sum([Handling Time]), type number}, {"LastUpdate", each List.Max([Task Completed]), type nullable number}, {"Data", each _, type table [RecordID=nullable text, Shift Date=nullable date, Claims Assistant Support=nullable text, LOB=nullable text, Task=nullable text, #"Claim # / Subject Name / Folder ID"=nullable text, Product Type=text, Diagnosis=text, ICD 9=text, Age=any, Occupation=text, Claims Professional=text, Referral Type=text, Mode of Transaction=text, Referral Date=number, Completion Date=text, Due Date=nullable number, Volume=text, Complexity=text, Remarks=nullable text, Target AHT=text, TAT=number, Task Started=nullable number, Task Completed=nullable number, Handling Time=number, Remarks_=text]}}),
+    #"Added Custom" = Table.AddColumn(#"Grouped Rows", "Record", each Table.Max ( [Data] , "Task Completed" )),
+    #"Added Custom1" = Table.AddColumn(#"Added Custom", "Remarks", each Text.Combine ( [Data][Remarks_], "")),
+    #"Expanded Record" = Table.ExpandRecordColumn(#"Added Custom1", "Record", {"Shift Date", "Claims Assistant Support", "LOB", "Task", "Claim # / Subject Name / Folder ID", "Product Type", "Diagnosis", "ICD 9", "Age", "Occupation", "Claims Professional", "Referral Type", "Mode of Transaction", "Referral Date", "Completion Date", "Due Date", "Volume", "Complexity", "Target AHT", "TAT"}, {"Shift Date", "Claims Assistant Support", "LOB", "Task", "Claim # / Subject Name / Folder ID", "Product Type", "Diagnosis", "ICD 9", "Age", "Occupation", "Claims Professional", "Referral Type", "Mode of Transaction", "Referral Date", "Completion Date", "Due Date", "Volume", "Complexity", "Target AHT", "TAT"}),
+    #"Removed Columns" = Table.RemoveColumns(#"Expanded Record",{"Data"}),
+    #"Reordered Columns" = Table.ReorderColumns(#"Removed Columns",{"RecordID", "Shift Date", "Claims Assistant Support", "LOB", "Task", "Claim # / Subject Name / Folder ID", "Product Type", "Diagnosis", "ICD 9", "Age", "Occupation", "Claims Professional", "Referral Type", "Mode of Transaction", "Referral Date", "Completion Date", "Due Date", "TAT", "Volume", "Complexity", "Target AHT", "Handling Time", "LastUpdate", "Remarks"}),
+    #"tat status" = Table.AddColumn(#"Reordered Columns", "TargetStatus", each if [LastUpdate] <= Number.From([Due Date]) then "Passed" else "Missed"),
+    #"Changed Type1" = Table.TransformColumnTypes(#"tat status",{{"Due Date", type datetime}, {"LastUpdate", type datetime}, {"Handling Time", type time}})
+in
+    #"Changed Type1"
