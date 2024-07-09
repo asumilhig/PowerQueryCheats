@@ -2,10 +2,12 @@ Concatenate strings from multiple rows into single row, also applies to grouping
 Select Group by then in new column, select SUM as operation and select the column you want to concatenate, assign name and click ok
 Added column will show as error. in the formula bar, = Table.Group(#"Added Custom", {"GroupColumn"}, {{"CustomColumn", each Text.Combine([column], ";"), type nullable text}})
 
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Count the columns with non blanks
 add new column and add this formula -> List.Count(List.RemoveNulls(Record.ToList(Record.RemoveFields(_, "Vehicle ID"))))
 https://community.fabric.microsoft.com/t5/Power-Query/Need-to-count-columns-in-a-row-that-are-not-null/td-p/3067269
 
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Get the row with max value from the group
 let
     Source = Excel.CurrentWorkbook(){[Name="DataDump"]}[Content],
@@ -24,5 +26,58 @@ let
 in
     #"Changed Type1"
 
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Extract number in Alpha Numeric String like "ABCD1234"
 https://community.fabric.microsoft.com/t5/Desktop/PowerQuery-Extract-Numbers-from-A-string-eg-ABCD1234/m-p/198666
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Compute the performance change with non consecutive dates
+
+ChatGPT
+To compute the performance change between the current date and the previous available date (which may not be the immediate previous day), you need to modify the DAX expression to handle this scenario. Here’s how you can adjust the calculation:
+
+Calculating Performance Change with Non-Consecutive Dates
+If your dates are not consecutive (e.g., skipping weekends or holidays), and you want to compute the performance change based on the last available date before the current date, you can adjust your DAX measure accordingly:
+
+dax
+Copy code
+PerformanceChange = 
+VAR CurrentDate = MAX(Sales[Date])
+VAR PreviousDate = 
+    CALCULATE(
+        MAX(Sales[Date]),
+        FILTER(
+            ALL(Sales),
+            Sales[Date] < CurrentDate
+        )
+    )
+VAR CurrentRevenue = 
+    CALCULATE(
+        SUM(Sales[Revenue]),
+        Sales[Date] = CurrentDate
+    )
+VAR PreviousRevenue = 
+    CALCULATE(
+        SUM(Sales[Revenue]),
+        Sales[Date] = PreviousDate
+    )
+RETURN
+    IF(
+        ISBLANK(PreviousRevenue),
+        BLANK(),
+        CurrentRevenue - PreviousRevenue
+    )
+Explanation:
+CurrentDate: This variable captures the maximum date currently in context.
+PreviousDate: Using CALCULATE and FILTER, this variable finds the maximum date that is less than CurrentDate. The ALL(Sales) function ensures that all dates are considered, not just those in the current filter context.
+CurrentRevenue: Calculates the sum of revenue for the CurrentDate.
+PreviousRevenue: Calculates the sum of revenue for the PreviousDate.
+RETURN: Computes the difference between CurrentRevenue and PreviousRevenue. If PreviousRevenue is blank (meaning there is no previous date with revenue), it returns BLANK().
+Considerations:
+Non-Consecutive Dates: This approach handles scenarios where dates are not consecutive by finding the last available date before the current date.
+
+Date Handling: Ensure your date column (Sales[Date]) is correctly referenced and that your date filtering logic (FILTER(ALL(Sales), ...) adjusts based on your specific requirements, such as excluding weekends or holidays.
+
+Performance: Depending on the size of your dataset, consider the performance implications of using ALL(Sales) for large datasets. You may need to optimize this based on your specific scenario.
+
+This DAX measure should now correctly compute the performance change between the current date and the last available date before it, even if they are not consecutive dates like Monday and Friday. Adjust the logic further if your specific business rules require additional considerations for date filtering or handling missing data scenarios.
